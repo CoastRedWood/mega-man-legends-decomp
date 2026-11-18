@@ -60,7 +60,7 @@ extern sint32 Cd_movie_playing;
 // The running command's state (cd_cmd_play_movie's switch index); cleared on dequeue.
 extern sint32 Cd_cmd_routine;
 
-extern uint8 Cd_status; // set up by Cd_init
+extern volatile uint8 Cd_status; // updated by CD interrupt callbacks
 extern uint8 Cd_sync_done;
 
 void Cd_init(void);

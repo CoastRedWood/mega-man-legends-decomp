@@ -9,10 +9,14 @@
 #include "common.h"
 
 // CdControl command codes.
+#define CdlNop       0x01
 #define CdlSetloc    0x02
+#define CdlReadN     0x06
 #define CdlPause     0x09
 #define CdlSetmode   0x0e
 #define CdlSetfilter 0x0d
+#define CdlGetlocP   0x11
+#define CdlSeekL     0x16
 #define CdlReadS     0x1b
 
 // CdlSetmode mode bits
@@ -87,6 +91,7 @@ CdlCB CdSyncCallback(CdlCB func);
 CdlCB CdReadyCallback(CdlCB func);
 int CdMix(CdlATV *vol);
 CdlLOC *CdIntToPos(int i, CdlLOC *p);
+int CdPosToInt(CdlLOC *p);
 int CdGetSector(void *madr, int size);
 
 #endif // PSYQ_LIBCD_H

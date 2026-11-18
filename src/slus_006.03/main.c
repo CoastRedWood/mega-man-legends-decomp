@@ -22,6 +22,7 @@ void main(void)
     {
         while (Vsync_count < Vsync_wait)
         {
+            VSYNC_IDLE();
         }
 
         Vsync_count = 0;
@@ -412,33 +413,22 @@ void Movie_dct_out_callback(void)
     }
 }
 
-#ifdef NON_MATCHING
 void Movie_frame_upload(void)
 {
-    // HACK: a variable holding 1 reproduces the target's instruction order; revisit
-    sint32 one;
     sint32 i;
     RECT *rect;
-    u_char *img;
 
     if (Cd_movie_playing)
     {
-        i    = 0;
         rect = Movie_rect_tbl[Dbl_buff_idx];
-        one  = 1;
-        img  = (u_char *)MOVIE_IMG_BUF;
 
-        for (; i < MOVIE_SLICE_COUNT; i++)
+        for (i = 0; i < MOVIE_SLICE_COUNT; i++)
         {
-            LoadImage(rect, (u_long *)(img + ((one - Movie_frame_idx) * MOVIE_IMG_SIZE)));
+            LoadImage(rect, MOVIE_IMG(1 - Movie_frame_idx) + i * MOVIE_SLICE_WORDS);
             rect++;
-            img += MOVIE_SLICE_WORDS * 4;
         }
     }
 }
-#else
-INCLUDE_ASM("asm/slus_006.03/nonmatchings/main", Movie_frame_upload);
-#endif
 
 void Cd_cmd_exec(void)
 {
@@ -455,15 +445,16 @@ void Cd_cmd_exec(void)
     cd_cmd_tbl[Cd_cmd_exec_ptr->type]();
 }
 
-#ifdef NON_MATCHING
 void Cd_cmd_dequeue(void)
 {
     CD_CMD *p;
 
     for (p = Cd_cmd_queue; p->type != 0; p++)
     {
-        p->type = p[1].type;
-        p->args = p[1].args;
+        p->type                  = p[1].type;
+        p->args.arg1             = p[1].args.arg1;
+        p->args.arg2             = p[1].args.arg2;
+        *(uint32 *)&p->args.arg3 = *(uint32 *)&p[1].args.arg3;
     }
 
     p[1].type      = 0;
@@ -471,9 +462,6 @@ void Cd_cmd_dequeue(void)
     Cd_cmd_routine = 0;
     Cd_cmd_write_ptr--;
 }
-#else
-INCLUDE_ASM("asm/slus_006.03/nonmatchings/main", Cd_cmd_dequeue);
-#endif
 
 void Cd_set_volume(uint8 vol)
 {
@@ -520,7 +508,8 @@ void Cd_sync_cb(u_char status, u_char *result)
     }
 }
 
-#ifdef NON_MATCHING
+// cc1 runs with -G8 (tools/cc.sh): the 8-byte Cd_result then counts as small data, so GCC
+// rebuilds its address for each call instead of keeping it in a saved register.
 void Movie_start(sint32 file)
 {
     CdlLOC loc;
@@ -547,11 +536,7 @@ void Movie_start(sint32 file)
     Cd_controlb_retry(CdlSetloc, (u_char *)&loc, Cd_result);
     Cd_controlb_retry(CdlReadS, NULL, Cd_result);
 }
-#else
-INCLUDE_ASM("asm/slus_006.03/nonmatchings/main", Movie_start);
-#endif
 
-#ifdef NON_MATCHING
 void Movie_sector_cb(u_char status, u_char *result)
 {
     sint32 i;
@@ -592,7 +577,8 @@ void Movie_sector_cb(u_char status, u_char *result)
         }
 
         // Frame data goes after the table, one sector's worth per sector.
-        src = sec->data;
+        // retail builds this address as a literal (lui/ori), not from sec
+        src = (u_long *)(STR_SECTOR_BUF + sizeof(StHEADER));
         dst = (u_long *)((StHEADER *)Movie_write_ptr + sec->hdr.nSectors) +
               sec->hdr.secCount * STR_DATA_WORDS;
         for (i = 0; i < STR_DATA_WORDS; i++)
@@ -614,9 +600,6 @@ void Movie_sector_cb(u_char status, u_char *result)
         CdReadyCallback(0);
     }
 }
-#else
-INCLUDE_ASM("asm/slus_006.03/nonmatchings/main", Movie_sector_cb);
-#endif
 
 void Cd_control_retry(u_char com, u_char *param, u_char *result)
 {
@@ -670,7 +653,6 @@ sint32 Cd_read_sync2(void)
     return Cd_cmd_write_ptr != Cd_cmd_queue;
 }
 
-#ifdef NON_MATCHING
 void Intro_init(void)
 {
     RECT rect;
@@ -680,6 +662,8 @@ void Intro_init(void)
     uint32 k;
     SPRT *p0;
     SPRT *p1;
+    DR_MODE *d0;
+    DR_MODE *d1;
 
     img                         = copyright_tim;
     *(uint32 *)&Intro_routine_0 = 2;
@@ -723,15 +707,16 @@ void Intro_init(void)
         }
     }
 
+    d0 = copyright_dr_mode[0];
+    d1 = copyright_dr_mode[1];
     for (i = 0; i < 5; i++)
     {
-        SetDrawMode(&copyright_dr_mode[0][i], 0, 0, (i + 10) | 0x80, NULL);
-        SetDrawMode(&copyright_dr_mode[1][i], 0, 0, (i + 10) | 0x80, NULL);
+        SetDrawMode(d0, 0, 0, (i + 10) | 0x80, NULL);
+        SetDrawMode(d1, 0, 0, (i + 10) | 0x80, NULL);
+        d0++;
+        d1++;
     }
 }
-#else
-INCLUDE_ASM("asm/slus_006.03/nonmatchings/main", Intro_init);
-#endif
 
 void intro_copyright_draw(uint8 brightness)
 {

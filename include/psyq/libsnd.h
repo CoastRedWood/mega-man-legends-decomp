@@ -21,4 +21,9 @@ void SsQuit(void);
 void SsSetSerialAttr(char s_num, char attr, char mode);
 void SsSetSerialVol(char s_num, short voll, short volr);
 
+short SsVabOpenHeadSticky(u_char *addr, short vab_id, u_long sbaddr);
+short SsVabTransBodyPartly(u_char *addr, u_long bufsize, short vab_id);
+short SsVabTransCompleted(short immediate_flag);
+void SsVabClose(short vab_id);
+
 #endif // PSYQ_LIBSND_H

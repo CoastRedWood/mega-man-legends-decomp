@@ -8,6 +8,12 @@
 #define DISP_MODE_640 1
 #define OT_LEN        8
 
+// The native port's hook for the main loop's wait for the vertical blank (it advances its
+// game-paced clock there; port/include/port_prelude.h). Nothing on the console.
+#ifndef VSYNC_IDLE
+#define VSYNC_IDLE()
+#endif
+
 // One of the two double buffers.
 typedef struct
 {
