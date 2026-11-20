@@ -1,8 +1,11 @@
 /* Symbols the linker must compute so the program can move (tools/shift_test.py).
    Passed to ld by tools/build.sh before splat's linker script. */
 
-/* End of BSS: PsyQ's start clears BSS up to here and stup1 starts the heap here. */
-D_800C5688 = main_BSS_END;
+/* End of BSS: PsyQ's start clears BSS up to here and stup1 starts the heap here.
+   .main_bss holds nothing (the BSS lives in .sbss/COMMON inside main_SDATA), but some ld
+   builds (Ubuntu's binutils 2.38 and 2.42) still align the empty section to 16, which would
+   move main_BSS_END 8 bytes past the real end. */
+D_800C5688 = main_BSS_SIZE == 0 ? main_SDATA_END : main_BSS_END;
 
 /* PS-X EXE header fields (tools/build.sh assembles splat's header with these). */
 EXE_ENTRY = start;
